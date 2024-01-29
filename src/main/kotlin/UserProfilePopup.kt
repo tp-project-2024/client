@@ -1,5 +1,6 @@
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Button
 import androidx.compose.material.Card
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
@@ -11,9 +12,24 @@ import androidx.compose.ui.window.Popup
 
 @Composable
 fun UserProfilePopup(
-    profileDto: UserProfileDto,
+    myId: Long,
+    profile: UserProfileDto,
+    isMe: Boolean = false,
     onDismissRequest: () -> Unit,
+    onFriendInvite: (Boolean) -> Unit = {},
+    onGameInvite: (Boolean) -> Unit = {},
+    friendInvite: UserInviteDto? = null,
+    gameInvite: UserInviteDto? = null,
 ) {
+    val isInvitedToFriendsByMe = if (friendInvite == null) false
+        else friendInvite.userSenderId == myId && friendInvite.userReceiverId == profile.userId
+    val didInviteMeToFriends = if (friendInvite == null) false
+        else friendInvite.userSenderId == profile.userId && friendInvite.userReceiverId == myId
+    val isInvitedToGameByMe = if (gameInvite == null) false
+        else gameInvite.userSenderId == myId && gameInvite.userReceiverId == profile.userId
+    val didInviteMeToGame = if (gameInvite == null) false
+        else gameInvite.userSenderId == profile.userId && gameInvite.userReceiverId == myId
+
     Popup(
         focusable = true,
         onDismissRequest = onDismissRequest,
@@ -26,14 +42,38 @@ fun UserProfilePopup(
             shape = RoundedCornerShape(16.dp),
         ) {
             Column {
-                Text(
-                    text = profileDto.nickname,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                )
+                Row(
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    Text(
+                        text = profile.nickname,
+                        textAlign = TextAlign.Center,
+                    )
+                    if (!isMe) {
+                        Divider()
+                        Row {
+                            Button(
+                                onClick = {
+                                    onGameInvite(didInviteMeToGame)
+                                },
+                                enabled = !isInvitedToGameByMe,
+                            ) {
+                                Text(if (didInviteMeToGame) "Accept game invite" else "Invite to game")
+                            }
+                            Button(
+                                onClick = {
+                                    onFriendInvite(didInviteMeToFriends)
+                                },
+                                enabled = !isInvitedToFriendsByMe,
+                            ) {
+                                Text(if (didInviteMeToFriends) "Accept friend invite" else "Invite friend")
+                            }
+                        }
+                    }
+                }
                 Divider()
                 Text(
-                    text = profileDto.bio,
+                    text = profile.bio,
                 )
             }
         }

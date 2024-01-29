@@ -2,7 +2,9 @@ import Globals.BASE_URL
 import Globals.HTTP
 import Globals.MOSHI
 import com.squareup.moshi.Types
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.text.ParseException
 
@@ -70,6 +72,92 @@ fun getUserProfile(
         MOSHI.adapter(UserProfileDto::class.java)
                 .fromJson(response.body!!.source())
                 ?: return Result.failure(ParseException("Failed to parse UserProfileDto", -1))
+        )
+    }
+}
+
+enum class InviteType {
+    FRIEND, GAME
+}
+
+fun sendInvite(
+    myId: Long,
+    userId: Long,
+    token: String,
+    type: InviteType,
+): Result<Unit> {
+    val inviteDto = MOSHI.adapter(UserInviteDto::class.java)
+        .toJson(UserInviteDto(
+            userSenderId = myId,
+            userReceiverId = userId,
+        ))
+    val pathBase = if (type == InviteType.FRIEND) "friend" else "game"
+    val request = Request.Builder()
+        .post(inviteDto.toRequestBody("application/json; charset=utf-8".toMediaType()))
+        .url("$BASE_URL/$pathBase/invite/send")
+        .header("Authorization", "Bearer $token")
+        .build()
+
+    HTTP.newCall(request).execute().use request@{ response ->
+        if (!response.isSuccessful) {
+            return Result.failure(Exception(response.toString()))
+        }
+        return Result.success(Unit)
+    }
+}
+
+fun acceptInvite(
+    invite: UserInviteDto,
+    token: String,
+    type: InviteType,
+): Result<UserInviteDto> {
+    val inviteDto = MOSHI.adapter(UserInviteDto::class.java)
+        .toJson(invite)
+    val pathBase = if (type == InviteType.FRIEND) "friend" else "game"
+    val request = Request.Builder()
+        .post(inviteDto.toRequestBody("application/json; charset=utf-8".toMediaType()))
+        .url("$BASE_URL/$pathBase/invite/accept")
+        .header("Authorization", "Bearer $token")
+        .build()
+
+    HTTP.newCall(request).execute().use request@{ response ->
+        if (!response.isSuccessful) {
+            return Result.failure(Exception(response.toString()))
+        }
+
+        return Result.success(
+            MOSHI.adapter(UserInviteDto::class.java)
+                .fromJson(response.body!!.source())
+                ?: return Result.failure(ParseException("Failed to parse UserInviteDto", -1))
+        )
+    }
+}
+
+fun fetchInvites(
+    myId: Long,
+    token: String,
+    type: InviteType,
+): Result<List<UserInviteDto>> {
+    val pathBase = if (type == InviteType.FRIEND) "friend" else "game"
+    val request = Request.Builder()
+        .get()
+        .url("$BASE_URL/$pathBase/invite/fetch/$myId")
+        .header("Authorization", "Bearer $token")
+        .build()
+
+    HTTP.newCall(request).execute().use request@{ response ->
+        if (!response.isSuccessful) {
+            return Result.failure(Exception(response.toString()))
+        }
+
+        val inviteList = Types.newParameterizedType(List::class.java, UserInviteDto::class.java)
+
+        val body = response.body!!.string()
+
+        return Result.success(
+            MOSHI.adapter<List<UserInviteDto>>(inviteList)
+                .fromJson(body)
+                ?: return Result.failure(ParseException("Failed to parse UserInviteDto", -1))
         )
     }
 }

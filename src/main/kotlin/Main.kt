@@ -16,6 +16,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
 @Preview
 fun App() {
     var loggedIn by remember { mutableStateOf(false) }
+    var inGame by remember { mutableStateOf(false) }
     var accessToken by remember { mutableStateOf("") }
     var userProfile: UserProfileDto? = null
     val leaderboard: MutableList<UserProfileDto> = mutableListOf()
@@ -116,65 +117,76 @@ fun App() {
 
     MaterialTheme {
         if (loggedIn) {
-            //LobbyScreen(userProfile!!, leaderboard)
-            GameScreen(
-                myId = 1L,
-                game = GameDto(
-                    1L,
-                    1L,
-                    2L,
-                ),
-                token = accessToken,
-                messages = listOf(
-                    GameMessageDto(
-                        gameId = 1L,
-                        authorId = 1L,
-                        content = "siema",
-                        timestamp = "22:21:35",
+            if (inGame) {
+                GameScreen(
+                    myId = 1L,
+                    game = GameDto(
+                        1L,
+                        1L,
+                        2L,
                     ),
-                    GameMessageDto(
-                        gameId = 1L,
-                        authorId = 2L,
-                        content = "cześć",
-                        timestamp = "22:21:50",
+                    token = accessToken,
+                    messages = listOf(
+                        GameMessageDto(
+                            gameId = 1L,
+                            authorId = 1L,
+                            content = "siema",
+                            timestamp = "22:21:35",
+                        ),
+                        GameMessageDto(
+                            gameId = 1L,
+                            authorId = 2L,
+                            content = "cześć",
+                            timestamp = "22:21:50",
+                        ),
+                        GameMessageDto(
+                            gameId = 1L,
+                            authorId = 1L,
+                            content = "dupa",
+                            timestamp = "22:22:07",
+                        ),
+                        GameMessageDto(
+                            gameId = 1L,
+                            authorId = 2L,
+                            content = "dupa :D",
+                            timestamp = "22:22:22",
+                        ),
                     ),
-                    GameMessageDto(
-                        gameId = 1L,
-                        authorId = 1L,
-                        content = "dupa",
-                        timestamp = "22:22:07",
-                    ),
-                    GameMessageDto(
-                        gameId = 1L,
-                        authorId = 2L,
-                        content = "dupa :D",
-                        timestamp = "22:22:22",
-                    ),
-                ),
-                onMessage = {
+                    onMessage = {
 
-                },
-                onMove = onMove@{ gameJournalDto, stoneColor ->
-                    val body = MOSHI.adapter(GameJournalDto::class.java)
-                        .toJson(gameJournalDto)
+                    },
+                    onMove = onMove@{ gameJournalDto, stoneColor ->
+                        val body = MOSHI.adapter(GameJournalDto::class.java)
+                            .toJson(gameJournalDto)
 
-                    val request = Request.Builder()
-                        .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
-                        .url("$BASE_URL/game/move/send")
-                        .header("Authorization", "Bearer $accessToken")
-                        .build()
+                        val request = Request.Builder()
+                            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                            .url("$BASE_URL/game/move/send")
+                            .header("Authorization", "Bearer $accessToken")
+                            .build()
 
-                    val result = HTTP.newCall(request).execute().use newCall@{ response ->
-                        if (!response.isSuccessful) {
-                            return@newCall StoneType.EMPTY
+                        val result = HTTP.newCall(request).execute().use newCall@{ response ->
+                            if (!response.isSuccessful) {
+                                return@newCall StoneType.EMPTY
+                            }
+
+                            return@newCall stoneColor
                         }
 
-                        return@newCall stoneColor
-                    }
-
-                    return@onMove result
-                },
-            )
+                        return@onMove result
+                    },
+                )
+            } else {
+                LobbyScreen(
+                    currentUserProfile = userProfile!!,
+                    leaderboard = leaderboard,
+                    showError = {
+                        setError(it)
+                    },
+                    token = accessToken,
+                    onGameStart = { inGame = true },
+                )
+            }
         } else {
             LoginScreen(onLogin, onRegister)
         }

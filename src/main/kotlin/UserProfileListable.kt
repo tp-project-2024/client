@@ -1,6 +1,5 @@
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.onClick
+import androidx.compose.material.Button
 import androidx.compose.material.Divider
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -8,23 +7,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun UserProfileListable(
-    userProfileDto: UserProfileDto,
+    userProfile: UserProfileDto,
     onClick: (UserProfileDto) -> Unit,
 ) {
     Row(
         modifier = Modifier
             .height(IntrinsicSize.Min)
-            .fillMaxWidth()
-            .onClick {
-                onClick(userProfileDto)
-            },
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         Text(
-            text = userProfileDto.nickname,
+            text = userProfile.nickname,
             fontWeight = FontWeight.Bold,
         )
         Divider(
@@ -33,7 +28,7 @@ fun UserProfileListable(
                 .width(1.dp)
         )
         Text(
-            text = userProfileDto.score.toString(),
+            text = userProfile.score.toString(),
         )
         Divider(
             modifier = Modifier
@@ -41,7 +36,13 @@ fun UserProfileListable(
                 .width(1.dp)
         )
         Text(
-            text = userProfileDto.winsPerLosses.toString(),
+            text = userProfile.winsPerLosses.toString(),
+        )
+        Button(
+            onClick = { onClick(userProfile) },
+            content = {
+                Text("Show profile")
+            }
         )
     }
 }
