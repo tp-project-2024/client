@@ -33,6 +33,10 @@ fun GameScreen(
         mutableStateOf(TextFieldValue("", TextRange(0, 0)))
     }
 
+    val messageAuthors = remember {
+        mutableStateMapOf<Long, UserProfileDto>()
+    }
+
     val colorToImagePath: (UserColor?) -> String = { when (it) {
         UserColor.BLACK -> "black.svg"
         UserColor.WHITE -> "white.svg"
@@ -71,11 +75,12 @@ fun GameScreen(
             items(messages.size) { i ->
                 val currentMessage = messages[i]
                 Message(
-                    author = getUserProfile(myId, currentMessage.authorId, token)
-                        .getOrElse {
-                            UserProfileDto.INVALID
-                        }
-                        .nickname,
+                    author = messageAuthors.getOrPut(currentMessage.authorId) {
+                        getUserProfile(myId, currentMessage.authorId, token)
+                            .getOrElse {
+                                UserProfileDto.INVALID
+                            }
+                    }.nickname,
                     content = currentMessage.content,
                     timestamp = currentMessage.timestamp,
                 )
