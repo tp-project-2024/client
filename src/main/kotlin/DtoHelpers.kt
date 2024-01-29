@@ -55,13 +55,14 @@ fun getUserProfile(
 ): Result<UserProfileDto> {
     val request = Request.Builder()
         .get()
-        .url("$BASE_URL/user/profile/?id_author=$myId&id_about=$userId")
+        .url("$BASE_URL/user/profile?idAuthor=$myId&idAbout=$userId")
         .header("Authorization", "Bearer $token")
         .build()
 
     HTTP.newCall(request).execute().use { response ->
-        if (!response.isSuccessful)
+        if (!response.isSuccessful) {
             return Result.failure(IOException(response.message))
+        }
 
         return Result.success(
         MOSHI.adapter(UserProfileDto::class.java)
