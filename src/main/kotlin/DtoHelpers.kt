@@ -38,7 +38,7 @@ fun getLeaderboard(
         if (!response.isSuccessful)
             return Result.failure(IOException(response.message))
 
-        val profileList = Types.newParameterizedType(List::class.java, UserProfileDto.Companion::class.java)
+        val profileList = Types.newParameterizedType(List::class.java, UserProfileDto::class.java)
 
         return Result.success(
             MOSHI.adapter<List<UserProfileDto>>(profileList)
