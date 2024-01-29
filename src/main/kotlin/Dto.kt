@@ -15,14 +15,6 @@ enum class StoneType {
     BLACK, WHITE, EMPTY
 }
 
-data class UserLobbyDto(
-    val userId: Long,
-    val nickname: String,
-    val score: Long,
-    val userState: UserLobbyState,
-    val isFriend: Boolean,
-)
-
 data class UserProfileDto(
     val userId: Long,
     val nickname: String,
