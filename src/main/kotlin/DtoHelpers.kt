@@ -40,9 +40,11 @@ fun getLeaderboard(
 
         val profileList = Types.newParameterizedType(List::class.java, UserProfileDto::class.java)
 
+        val body = response.body!!.string()
+
         return Result.success(
             MOSHI.adapter<List<UserProfileDto>>(profileList)
-                .fromJson(response.body!!.source())
+                .fromJson(body)
                 ?: return Result.failure(ParseException("Failed to parse UserProfileDto", -1))
         )
     }
