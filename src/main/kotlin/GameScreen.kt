@@ -1,6 +1,8 @@
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Text
@@ -9,19 +11,27 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import javax.swing.Painter
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -76,36 +86,27 @@ fun GameScreen(
 
         var boardSize by remember { mutableStateOf(IntSize.Zero) }
 
-        Box(
+        LazyHorizontalGrid(
+            rows = GridCells.Fixed(19),
             modifier = Modifier
                 .fillMaxSize()
                 .onSizeChanged {
                     boardSize = it
-                }
+                },
+            contentPadding = PaddingValues(25.dp),
         ) {
             val cellAmount = 19
-            val cellSize = boardSize / cellAmount
+            val cellSizeFraction = (cellAmount.toFloat() / boardSize.height)
+                .coerceAtMost(cellAmount.toFloat() / boardSize.width)
 
-            Canvas(
-                modifier = Modifier
-                    .border(width = 2.dp, color = Color.Red)
-            ) {
-                for (y in (0..cellAmount)) {
-                    for (x in (0..cellAmount)) {
-                        drawRect(
-                            color = Color.Black,
-                            topLeft = Offset(x * cellSize.width + cellSize.width / 2.0f, y * cellSize.height + cellSize.height / 2.0f),
-                            size = Size(cellSize.width.toFloat(), 1.0f),
-                        )
-                        drawRect(
-                            color = Color.Black,
-                            topLeft = Offset(x * cellSize.width + cellSize.width / 2.0f, y * cellSize.height + cellSize.height / 2.0f),
-                            size = Size(1.0f, cellSize.height.toFloat()),
-                        )
-                    }
-                }
+            items(19 * 19) { x ->
+                Image(
+                    painter = painterResource("cell.svg"),
+                    contentDescription = "cell",
+                    modifier = Modifier
+                        .fillMaxSize(cellSizeFraction)
+                )
             }
-
         }
     }
 }
