@@ -1,14 +1,17 @@
+import Globals.BASE_URL
+import Globals.HTTP
+import Globals.MOSHI
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.material.*
+import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.singleWindowApplication
-import com.github.kittinunf.fuel.core.FuelManager
-import com.github.kittinunf.fuel.httpPost
-import com.github.kittinunf.fuel.jackson.objectBody
-import com.github.kittinunf.fuel.jackson.responseObject
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 @Composable
 @Preview
@@ -28,7 +31,7 @@ fun App() {
     val afterLogin: (authDto: AuthResponseDto) -> Unit = afterLogin@{ authDto: AuthResponseDto ->
         accessToken = authDto.token
 
-        val userProfileResult = getUserProfile(authDto.userId, accessToken)
+        val userProfileResult = getUserProfile(authDto.userId, authDto.userId, accessToken)
 
         if (userProfileResult.isFailure) {
             setError(userProfileResult.exceptionOrNull()!!)
@@ -39,19 +42,35 @@ fun App() {
 
         loggedIn = true
 
-        leaderboard.addAll(getLeaderboard(userProfile!!.userId, accessToken))
+        val leaderboardDto = getLeaderboard(userProfile!!.userId, accessToken)
+
+        if (leaderboardDto.isFailure) {
+            setError(leaderboardDto.exceptionOrNull()!!)
+            return@afterLogin
+        }
+
+        leaderboard.addAll(leaderboardDto.getOrNull()!!)
     }
 
     val onLogin: (LoginDto) -> Unit = onLogin@{ loginDto: LoginDto ->
-        val result = try {
-                "/auth/authenticate"
-                    .httpPost()
-                    .objectBody(loginDto)
-                    .responseObject<AuthResponseDto>()
-                    .third
-                    .toStdResult()
-        } catch (e: NoSuchMethodError) {
-            Result.failure(e)
+        val body = MOSHI.adapter(LoginDto::class.java)
+            .toJson(loginDto)
+
+        val request = Request.Builder()
+            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .url("$BASE_URL/auth/authenticate")
+            .header("Authorization", "Bearer $accessToken")
+            .build()
+
+        val result = HTTP.newCall(request).execute().use newCall@{ response ->
+            if (!response.isSuccessful) {
+                return@newCall Result.failure(Exception(response.toString()))
+            }
+
+            return@newCall Result.success(
+                MOSHI.adapter(AuthResponseDto::class.java)
+                    .fromJson(response.body!!.source())
+            )
         }
 
         if (result.isFailure) {
@@ -65,15 +84,24 @@ fun App() {
     }
 
     val onRegister: (RegisterDto) -> Unit = onRegister@{ registerDto: RegisterDto ->
-        val result = try {
-            "/auth/register"
-                .httpPost()
-                .objectBody(registerDto)
-                .responseObject<AuthResponseDto>()
-                .third
-                .toStdResult()
-        } catch (e: NoSuchMethodError) {
-            Result.failure(e)
+        val body = MOSHI.adapter(RegisterDto::class.java)
+            .toJson(registerDto)
+
+        val request = Request.Builder()
+            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .url("$BASE_URL/auth/register")
+            .header("Authorization", "Bearer $accessToken")
+            .build()
+
+        val result = HTTP.newCall(request).execute().use newCall@{ response ->
+            if (!response.isSuccessful) {
+                return@newCall Result.failure(Exception(response.toString()))
+            }
+
+            return@newCall Result.success(
+                MOSHI.adapter(AuthResponseDto::class.java)
+                    .fromJson(response.body!!.source())
+            )
         }
 
         if (result.isFailure) {
@@ -87,44 +115,54 @@ fun App() {
     }
 
 
-    //MaterialTheme {
-    //    if (loggedIn) {
-    //        LobbyScreen(userProfile!!, leaderboard)
-    //    } else {
-    //        LoginScreen(onLogin, onRegister)
-    //    }
-    //}
-    GameScreen(
-        messages = listOf(
-            GameMessageDto(
-                gameId = 1L,
-                authorId = 1L,
-                content = "siema",
-                timestamp = "22:21:35",
-            ),
-            GameMessageDto(
-                gameId = 1L,
-                authorId = 2L,
-                content = "cześć",
-                timestamp = "22:21:50",
-            ),
-            GameMessageDto(
-                gameId = 1L,
-                authorId = 1L,
-                content = "dupa",
-                timestamp = "22:22:07",
-            ),
-            GameMessageDto(
-                gameId = 1L,
-                authorId = 2L,
-                content = "dupa :D",
-                timestamp = "22:22:22",
-            ),
-        ),
-        token = accessToken,
-        onMessage = {},
-        onMove = {},
-    )
+    MaterialTheme {
+        if (loggedIn) {
+            //LobbyScreen(userProfile!!, leaderboard)
+            GameScreen(
+                myId = 1L,
+                game = GameDto(
+                    1L,
+                    1L,
+                    2L,
+                ),
+                token = accessToken,
+                messages = listOf(
+                    GameMessageDto(
+                        gameId = 1L,
+                        authorId = 1L,
+                        content = "siema",
+                        timestamp = "22:21:35",
+                    ),
+                    GameMessageDto(
+                        gameId = 1L,
+                        authorId = 2L,
+                        content = "cześć",
+                        timestamp = "22:21:50",
+                    ),
+                    GameMessageDto(
+                        gameId = 1L,
+                        authorId = 1L,
+                        content = "dupa",
+                        timestamp = "22:22:07",
+                    ),
+                    GameMessageDto(
+                        gameId = 1L,
+                        authorId = 2L,
+                        content = "dupa :D",
+                        timestamp = "22:22:22",
+                    ),
+                ),
+                onMessage = {
+
+                },
+                onMove = {
+
+                },
+            )
+        } else {
+            LoginScreen(onLogin, onRegister)
+        }
+    }
 
     ErrorDialog(
         error = errorText,
@@ -138,6 +176,5 @@ fun main() = singleWindowApplication(
     title = "Go",
     state = WindowState(size = DpSize(800.dp, 600.dp))
 ) {
-    FuelManager.instance.basePath = "http://localhost:8080/api/v1"
     App()
 }

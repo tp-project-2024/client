@@ -57,13 +57,6 @@ data class GameDto(
     val userBlackId: Long,
 )
 
-data class GameMoveDto(
-    val userId: Long,
-    val gameId: Long,
-    val turnX: Int,
-    val turnY: Int,
-)
-
 data class GameActionDto(
     val userId: Long,
     val gameId: Long,

@@ -19,16 +19,46 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun GameScreen(
+    myId: Long,
+    game: GameDto,
     messages: List<GameMessageDto>,
     token: String,
-    onMove: () -> Unit,
+    onMove: (GameJournalDto) -> Unit,
     onMessage: (String) -> Unit,
 ) {
     var message by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue("", TextRange(0, 0)))
+    }
+
+    val colorToImagePath: (UserColor?) -> String = { when (it) {
+        UserColor.BLACK -> "black.svg"
+        UserColor.WHITE -> "white.svg"
+        null -> "null.svg"
+    }}
+
+    val myStoneColor: UserColor? = when (myId) {
+        game.userBlackId -> UserColor.BLACK
+        game.userWhiteId -> UserColor.WHITE
+        else -> null
+    }
+
+    val cellAmount = 19
+
+    val board = remember {
+        mutableStateListOf(
+            mutableStateListOf<UserColor?>()
+        )
+    }
+
+    // seriously? manual list initialization in 2024?
+    for (i in 0 until 19) {
+        board.add(mutableStateListOf())
+        for (ii in 0 until 19) {
+            board[i].add(null)
+        }
     }
 
     Row(
@@ -41,7 +71,7 @@ fun GameScreen(
             items(messages.size) { i ->
                 val currentMessage = messages[i]
                 Message(
-                    author = getUserProfile(currentMessage.authorId, token)
+                    author = getUserProfile(myId, currentMessage.authorId, token)
                         .getOrElse {
                             UserProfileDto.INVALID
                         }
@@ -65,7 +95,7 @@ fun GameScreen(
                             return@onKeyEvent true
                         }
                         return@onKeyEvent false
-                    }
+                    },
                 )
             }
         }
@@ -73,7 +103,7 @@ fun GameScreen(
         var boardSize by remember { mutableStateOf(IntSize.Zero) }
 
         LazyHorizontalGrid(
-            rows = GridCells.Fixed(19),
+            rows = GridCells.Fixed(cellAmount),
             modifier = Modifier
                 .fillMaxSize()
                 .onSizeChanged {
@@ -81,16 +111,32 @@ fun GameScreen(
                 },
             contentPadding = PaddingValues(25.dp),
         ) {
-            val cellAmount = 19
             val cellSizeFraction = (cellAmount.toFloat() / boardSize.height)
                 .coerceAtMost(cellAmount.toFloat() / boardSize.width)
 
-            items(19 * 19) { x ->
+            items(cellAmount * cellAmount) { i ->
+                val x = i % cellAmount
+                val y = i / cellAmount
+
                 Image(
-                    painter = painterResource("cell.svg"),
-                    contentDescription = "cell",
+                    painter = if (board[y][x] == null)
+                        painterResource("cell.svg")
+                    else painterResource(colorToImagePath(board[y][x])),
+                    contentDescription = if (board[y][x] == null) "cell" else "stone",
                     modifier = Modifier
                         .fillMaxSize(cellSizeFraction)
+                        .onClick {
+                            board[y][x] = myStoneColor
+                            onMove(
+                                GameJournalDto(
+                                    gameId = game.gameId,
+                                    authorId = myId,
+                                    turnX = x,
+                                    turnY = y,
+                                    action = GameAction.MOVE,
+                                )
+                            )
+                        }
                 )
             }
         }

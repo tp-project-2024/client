@@ -1,18 +1,15 @@
-import com.github.kittinunf.fuel.core.ResponseResultOf
-import com.github.kittinunf.fuel.httpGet
-import com.github.kittinunf.fuel.jackson.responseObject
-import com.github.kittinunf.result.Result
-
-fun <V, E : Throwable> Result<V, E>.toStdResult(): kotlin.Result<V> =
-    when (this) {
-        is Result.Success -> kotlin.Result.success(this.get())
-        is Result.Failure -> kotlin.Result.failure(this.failure())
-    }
+import Globals.BASE_URL
+import Globals.HTTP
+import Globals.MOSHI
+import com.squareup.moshi.Types
+import okhttp3.Request
+import java.io.IOException
+import java.text.ParseException
 
 fun getLeaderboard(
     userId: Long,
     token: String,
-): List<UserProfileDto> =
+): Result<List<UserProfileDto>> {
 //listOf(
 //    UserProfileDto(
 //        userId = userId,
@@ -31,32 +28,45 @@ fun getLeaderboard(
 //        winsPerLosses = 1.15f,
 //    ),
 //)
-    "/leaderboard/$userId"
-        .httpGet()
+    val request = Request.Builder()
+        .get()
+        .url("$BASE_URL/leaderboard/$userId")
         .header("Authorization", "Bearer $token")
-        .responseObject<List<LeaderboardDto>>()
-        .third
-        .toStdResult()
-        .getOrElse {
-            return emptyList()
-        }
-        .map {
-            getUserProfile(it.userId, token)
-                .getOrElse {
-                    UserProfileDto.INVALID
-                }
-        }
+        .build()
+
+    HTTP.newCall(request).execute().use { response ->
+        if (!response.isSuccessful)
+            return Result.failure(IOException(response.message))
+
+        val profileList = Types.newParameterizedType(List::class.java, UserProfileDto.Companion::class.java)
+
+        return Result.success(
+            MOSHI.adapter<List<UserProfileDto>>(profileList)
+                .fromJson(response.body!!.source())
+                ?: return Result.failure(ParseException("Failed to parse UserProfileDto", -1))
+        )
+    }
+}
 
 fun getUserProfile(
+    myId: Long,
     userId: Long,
     token: String,
-): kotlin.Result<UserProfileDto> = try {
-    "user/profile/$userId"
-        .httpGet()
+): Result<UserProfileDto> {
+    val request = Request.Builder()
+        .get()
+        .url("$BASE_URL/user/profile/?id_author=$myId&id_about=$userId")
         .header("Authorization", "Bearer $token")
-        .responseObject<UserProfileDto>()
-        .third
-        .toStdResult()
-} catch (e: NoSuchMethodError) {
-    kotlin.Result.failure(e)
+        .build()
+
+    HTTP.newCall(request).execute().use { response ->
+        if (!response.isSuccessful)
+            return Result.failure(IOException(response.message))
+
+        return Result.success(
+        MOSHI.adapter(UserProfileDto::class.java)
+                .fromJson(response.body!!.source())
+                ?: return Result.failure(ParseException("Failed to parse UserProfileDto", -1))
+        )
+    }
 }
