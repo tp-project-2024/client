@@ -26,7 +26,7 @@ fun GameScreen(
     game: GameDto,
     messages: List<GameMessageDto>,
     token: String,
-    onMove: (GameJournalDto) -> Unit,
+    onMove: (GameJournalDto, StoneType) -> StoneType,
     onMessage: (String) -> Unit,
 ) {
     var message by rememberSaveable(stateSaver = TextFieldValue.Saver) {
@@ -37,23 +37,23 @@ fun GameScreen(
         mutableStateMapOf<Long, UserProfileDto>()
     }
 
-    val colorToImagePath: (UserColor?) -> String = { when (it) {
-        UserColor.BLACK -> "black.svg"
-        UserColor.WHITE -> "white.svg"
-        null -> "null.svg"
+    val colorToImagePath: (StoneType) -> String = { when (it) {
+        StoneType.BLACK -> "black.svg"
+        StoneType.WHITE -> "white.svg"
+        StoneType.EMPTY -> "null.svg"
     }}
 
-    val myStoneColor: UserColor? = when (myId) {
-        game.userBlackId -> UserColor.BLACK
-        game.userWhiteId -> UserColor.WHITE
-        else -> null
+    val myStoneColor: StoneType = when (myId) {
+        game.userBlackId -> StoneType.BLACK
+        game.userWhiteId -> StoneType.WHITE
+        else -> StoneType.EMPTY
     }
 
     val cellAmount = 19
 
     val board = remember {
         mutableStateListOf(
-            mutableStateListOf<UserColor?>()
+            mutableStateListOf<StoneType>()
         )
     }
 
@@ -61,7 +61,7 @@ fun GameScreen(
     for (i in 0 until 19) {
         board.add(mutableStateListOf())
         for (ii in 0 until 19) {
-            board[i].add(null)
+            board[i].add(StoneType.EMPTY)
         }
     }
 
@@ -124,22 +124,24 @@ fun GameScreen(
                 val y = i / cellAmount
 
                 Image(
-                    painter = if (board[y][x] == null)
+                    painter = if (board[y][x] == StoneType.EMPTY)
                         painterResource("cell.svg")
                     else painterResource(colorToImagePath(board[y][x])),
-                    contentDescription = if (board[y][x] == null) "cell" else "stone",
+                    contentDescription = if (board[y][x] == StoneType.EMPTY)
+                        "cell"
+                    else "stone",
                     modifier = Modifier
                         .fillMaxSize(cellSizeFraction)
                         .onClick {
-                            board[y][x] = myStoneColor
-                            onMove(
+                            board[y][x] = onMove(
                                 GameJournalDto(
                                     gameId = game.gameId,
                                     authorId = myId,
                                     turnX = x,
                                     turnY = y,
                                     action = GameAction.MOVE,
-                                )
+                                ),
+                                myStoneColor
                             )
                         }
                 )

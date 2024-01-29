@@ -11,7 +11,9 @@ enum class UserColor {
     BLACK, WHITE
 }
 
-
+enum class StoneType {
+    BLACK, WHITE, EMPTY
+}
 
 data class UserLobbyDto(
     val userId: Long,

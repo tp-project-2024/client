@@ -11,10 +11,14 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun LobbyScreen(
-    currentUserProfileDto: UserProfileDto,
+    currentUserProfile: UserProfileDto,
     leaderboard: List<UserProfileDto>,
 ) {
     var showCurrentProfile by remember { mutableStateOf(false) }
+    val showLeaderboardProfiles = mutableMapOf<UserProfileDto, Boolean>()
+    leaderboard.forEach {
+        showLeaderboardProfiles[it] = false
+    }
 
     Row {
         Column {
@@ -53,16 +57,24 @@ fun LobbyScreen(
             horizontalAlignment = Alignment.End
         ) {
             items(leaderboard.size) { i ->
-                UserProfileListable(leaderboard[i])
+                UserProfileListable(leaderboard[i]) {
+                    showLeaderboardProfiles[it] = true
+                }
             }
         }
     }
 
     if (showCurrentProfile) {
-        UserProfilePopup(
-            currentUserProfileDto
-        ) {
+        UserProfilePopup(currentUserProfile) {
             showCurrentProfile = false
+        }
+    }
+
+    for ((profile, show) in showLeaderboardProfiles) {
+        if (show) {
+            UserProfilePopup(profile) {
+                showLeaderboardProfiles[profile] = false
+            }
         }
     }
 }

@@ -155,8 +155,25 @@ fun App() {
                 onMessage = {
 
                 },
-                onMove = {
+                onMove = onMove@{ gameJournalDto, stoneColor ->
+                    val body = MOSHI.adapter(GameJournalDto::class.java)
+                        .toJson(gameJournalDto)
 
+                    val request = Request.Builder()
+                        .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                        .url("$BASE_URL/game/move/send")
+                        .header("Authorization", "Bearer $accessToken")
+                        .build()
+
+                    val result = HTTP.newCall(request).execute().use newCall@{ response ->
+                        if (!response.isSuccessful) {
+                            return@newCall StoneType.EMPTY
+                        }
+
+                        return@newCall stoneColor
+                    }
+
+                    return@onMove result
                 },
             )
         } else {
