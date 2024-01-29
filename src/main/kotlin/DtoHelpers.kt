@@ -81,16 +81,12 @@ enum class InviteType {
 }
 
 fun sendInvite(
-    myId: Long,
-    userId: Long,
+    invite: UserInviteDto,
     token: String,
     type: InviteType,
 ): Result<Unit> {
     val inviteDto = MOSHI.adapter(UserInviteDto::class.java)
-        .toJson(UserInviteDto(
-            userSenderId = myId,
-            userReceiverId = userId,
-        ))
+        .toJson(invite)
     val pathBase = if (type == InviteType.FRIEND) "friend" else "game"
     val request = Request.Builder()
         .post(inviteDto.toRequestBody("application/json; charset=utf-8".toMediaType()))
@@ -157,6 +153,29 @@ fun fetchInvites(
         return Result.success(
             MOSHI.adapter<List<UserInviteDto>>(inviteList)
                 .fromJson(body)
+                ?: return Result.failure(ParseException("Failed to parse UserInviteDto", -1))
+        )
+    }
+}
+
+fun getCurrentGame(
+    myId: Long,
+    token: String,
+): Result<GameDto> {
+    val request = Request.Builder()
+        .get()
+        .url("$BASE_URL/game/invite/current/$myId")
+        .header("Authorization", "Bearer $token")
+        .build()
+
+    HTTP.newCall(request).execute().use request@{ response ->
+        if (!response.isSuccessful) {
+            return Result.failure(Exception(response.toString()))
+        }
+
+        return Result.success(
+            MOSHI.adapter(GameDto::class.java)
+                .fromJson(response.body!!.source())
                 ?: return Result.failure(ParseException("Failed to parse UserInviteDto", -1))
         )
     }

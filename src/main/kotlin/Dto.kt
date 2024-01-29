@@ -4,7 +4,7 @@ enum class UserLobbyState {
 }
 
 enum class GameAction {
-    MOVE, STOP_REQ, CONT_REQ, WIN_REQ, LOSE_REQ, LEAVE
+    MOVE, WIN_REQ, LOSE_REQ, LEAVE
 }
 
 enum class UserColor {

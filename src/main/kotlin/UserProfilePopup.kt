@@ -16,8 +16,8 @@ fun UserProfilePopup(
     profile: UserProfileDto,
     isMe: Boolean = false,
     onDismissRequest: () -> Unit,
-    onFriendInvite: (Boolean) -> Unit = {},
-    onGameInvite: (Boolean) -> Unit = {},
+    onFriendInvite: (Boolean, UserInviteDto) -> Unit = { _, _ -> },
+    onGameInvite: (Boolean, UserInviteDto) -> Unit = { _, _ -> },
     friendInvite: UserInviteDto? = null,
     gameInvite: UserInviteDto? = null,
 ) {
@@ -54,7 +54,11 @@ fun UserProfilePopup(
                         Row {
                             Button(
                                 onClick = {
-                                    onGameInvite(didInviteMeToGame)
+                                    val inviteDto = UserInviteDto(
+                                        userSenderId = if (didInviteMeToGame) profile.userId else myId,
+                                        userReceiverId = if (didInviteMeToGame) myId else profile.userId,
+                                    )
+                                    onGameInvite(didInviteMeToGame, inviteDto)
                                 },
                                 enabled = !isInvitedToGameByMe,
                             ) {
@@ -62,7 +66,11 @@ fun UserProfilePopup(
                             }
                             Button(
                                 onClick = {
-                                    onFriendInvite(didInviteMeToFriends)
+                                    val inviteDto = UserInviteDto(
+                                        userSenderId = if (didInviteMeToFriends) profile.userId else myId,
+                                        userReceiverId = if (didInviteMeToFriends) myId else profile.userId,
+                                    )
+                                    onFriendInvite(didInviteMeToFriends, inviteDto)
                                 },
                                 enabled = !isInvitedToFriendsByMe,
                             ) {

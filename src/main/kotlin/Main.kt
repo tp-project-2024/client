@@ -118,43 +118,33 @@ fun App() {
     MaterialTheme {
         if (loggedIn) {
             if (inGame) {
+                val currentGame = getCurrentGame(userProfile!!.userId, accessToken)
+                if (currentGame.isFailure) {
+                    setError(currentGame.exceptionOrNull()!!)
+                }
+                val game = currentGame.getOrNull()!!
                 GameScreen(
-                    myId = 1L,
-                    game = GameDto(
-                        1L,
-                        1L,
-                        2L,
-                    ),
+                    myId = userProfile!!.userId,
+                    game = game,
                     token = accessToken,
-                    messages = listOf(
-                        GameMessageDto(
-                            gameId = 1L,
-                            authorId = 1L,
-                            content = "siema",
-                            timestamp = "22:21:35",
-                        ),
-                        GameMessageDto(
-                            gameId = 1L,
-                            authorId = 2L,
-                            content = "cześć",
-                            timestamp = "22:21:50",
-                        ),
-                        GameMessageDto(
-                            gameId = 1L,
-                            authorId = 1L,
-                            content = "dupa",
-                            timestamp = "22:22:07",
-                        ),
-                        GameMessageDto(
-                            gameId = 1L,
-                            authorId = 2L,
-                            content = "dupa :D",
-                            timestamp = "22:22:22",
-                        ),
-                    ),
-                    onMessage = {
+                    // TODO implement this
+                    //messages = listOf(
+                    //    GameMessageDto(
+                    //        gameId = 1L,
+                    //        authorId = 1L,
+                    //        content = "siema",
+                    //        timestamp = "22:21:35",
+                    //    ),
+                    //    GameMessageDto(
+                    //        gameId = 1L,
+                    //        authorId = 2L,
+                    //        content = "cześć",
+                    //        timestamp = "22:21:50",
+                    //    ),
+                    //),
+                    //onMessage = {
 
-                    },
+                    //},
                     onMove = onMove@{ gameJournalDto, stoneColor ->
                         val body = MOSHI.adapter(GameJournalDto::class.java)
                             .toJson(gameJournalDto)
@@ -175,6 +165,28 @@ fun App() {
 
                         return@onMove result
                     },
+                    onGameEnd = { winnerId ->
+                        val body = MOSHI.adapter(UserProfileDto::class.java)
+                            .toJson(userProfile)
+
+                        val request = Request.Builder()
+                            .post(body.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                            .url("$BASE_URL/game/${game.gameId}/winner/$winnerId")
+                            .header("Authorization", "Bearer $accessToken")
+                            .build()
+
+                        val result = HTTP.newCall(request).execute().use result@{ response ->
+                            if (!response.isSuccessful) {
+                                return@result Result.failure(Exception(response.toString()))
+                            }
+
+                            return@result Result.success(Unit)
+                        }
+
+                        if (result.isFailure) {
+                            setError(result.exceptionOrNull()!!)
+                        }
+                    }
                 )
             } else {
                 LobbyScreen(

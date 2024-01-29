@@ -9,9 +9,22 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun UserProfileListable(
-    userProfile: UserProfileDto,
-    onClick: (UserProfileDto) -> Unit,
+    myId: Long,
+    profile: UserProfileDto,
+    onFriendInvite: (Boolean) -> Unit = {},
+    onGameInvite: (Boolean) -> Unit = {},
+    friendInvite: UserInviteDto? = null,
+    gameInvite: UserInviteDto? = null,
 ) {
+    val isInvitedToFriendsByMe = if (friendInvite == null) false
+        else friendInvite.userSenderId == myId && friendInvite.userReceiverId == profile.userId
+    val didInviteMeToFriends = if (friendInvite == null) false
+        else friendInvite.userSenderId == profile.userId && friendInvite.userReceiverId == myId
+    val isInvitedToGameByMe = if (gameInvite == null) false
+        else gameInvite.userSenderId == myId && gameInvite.userReceiverId == profile.userId
+    val didInviteMeToGame = if (gameInvite == null) false
+        else gameInvite.userSenderId == profile.userId && gameInvite.userReceiverId == myId
+
     Row(
         modifier = Modifier
             .height(IntrinsicSize.Min)
@@ -19,7 +32,7 @@ fun UserProfileListable(
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         Text(
-            text = userProfile.nickname,
+            text = profile.nickname,
             fontWeight = FontWeight.Bold,
         )
         Divider(
@@ -28,7 +41,7 @@ fun UserProfileListable(
                 .width(1.dp)
         )
         Text(
-            text = userProfile.score.toString(),
+            text = profile.score.toString(),
         )
         Divider(
             modifier = Modifier
@@ -36,13 +49,32 @@ fun UserProfileListable(
                 .width(1.dp)
         )
         Text(
-            text = userProfile.winsPerLosses.toString(),
+            text = profile.winsPerLosses.toString(),
         )
-        Button(
-            onClick = { onClick(userProfile) },
-            content = {
-                Text("Show profile")
+        if (myId != profile.userId) {
+            Divider(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .width(1.dp)
+            )
+            Row {
+                Button(
+                    onClick = {
+                        onGameInvite(didInviteMeToGame)
+                    },
+                    enabled = !isInvitedToGameByMe,
+                ) {
+                    Text(if (didInviteMeToGame) "Accept game invite" else "Invite to game")
+                }
+                Button(
+                    onClick = {
+                        onFriendInvite(didInviteMeToFriends)
+                    },
+                    enabled = !isInvitedToFriendsByMe,
+                ) {
+                    Text(if (didInviteMeToFriends) "Accept friend invite" else "Invite friend")
+                }
             }
-        )
+        }
     }
 }
